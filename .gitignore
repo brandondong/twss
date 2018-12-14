@@ -1,0 +1,2 @@
+# Ignore configuration file for praw which will contain client secret.
+praw.ini
