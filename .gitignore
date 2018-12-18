@@ -1,2 +1,4 @@
-# Ignore configuration file for praw which will contain client secret.
+# Ignore configuration file for praw which will contain the client secret.
 praw.ini
+
+__pycache__/
