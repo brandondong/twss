@@ -1,4 +1,6 @@
 # Ignore configuration file for praw which will contain the client secret.
 praw.ini
 
+training_data/
+
 __pycache__/
