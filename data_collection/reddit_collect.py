@@ -43,9 +43,9 @@ def run_script(collect_pos, examples_limit=None):
 
 	for f in os.listdir(data_path):
 		filename = os.path.join(data_path, f)
-		# Add contents to the set.
-		with open(filename, "r") as text_file:
-			existing_data.add(text_file.read().lower())
+		# Add contents to the set. Normalize by lowercasing and stripping any new lines added during the file write.
+		with open(filename, encoding="utf-8", mode="r") as text_file:
+			existing_data.add(text_file.read().rstrip().lower())
 		# Update the starting file number with the highest number encountered so far.
 		starting_filenum = max(starting_filenum, int(f[:-4]) + 1)
 
@@ -55,32 +55,34 @@ def run_script(collect_pos, examples_limit=None):
 	
 	# TODO remove this.
 	submission = reddit.submission("9sc0qj")
-	_walk_comment_forest(submission.comments, None, submission)
+	starting_filenum = _walk_comment_forest(submission.comments, None, submission, starting_filenum, data_path, existing_data)
 	
 	for submission in reddit.subreddit(TRAINING_SUBREDDIT).hot(limit=None):
 		if should_quit:
 			break
 		
 		# Recursively explore already fetched comments.
-		_walk_comment_forest(submission.comments, None, submission)
+		starting_filenum = _walk_comment_forest(submission.comments, None, submission, starting_filenum, data_path, existing_data)
 		
 	print("Shut down gracefully.")
 	
-def _walk_comment_forest(tree, parent, submission):
+def _walk_comment_forest(tree, parent, submission, filenum, data_path, existing_data):
 	for comment in tree:
 		if not isinstance(comment, MoreComments):
-			_process_comment(comment, parent, submission)
+			if _process_comment(comment, parent, submission, filenum, data_path, existing_data):
+				filenum += 1
 			
 			if hasattr(comment, "replies"):
-				_walk_comment_forest(comment.replies, comment, submission)
+				filenum = _walk_comment_forest(comment.replies, comment, submission, filenum, data_path, existing_data)
+	return filenum
 			
-def _process_comment(comment, parent, submission):
+def _process_comment(comment, parent, submission, filenum, data_path, existing_data):
 	# Ignore downvoted comments.
 	if comment.score < SCORING_THRESHOLD:
-		return
+		return False
 	result = rcp.match_twss(comment.body)
 	if result == None:
-		return
+		return False
 	if result == "":
 		if parent == None:
 			# Since this is not a reply, the punchline would likely be referring to the submission title.
@@ -89,5 +91,21 @@ def _process_comment(comment, parent, submission):
 			joke = rcp.strip_formatting(parent.body)
 	else:
 		joke = result
+	
 	print(f"Found joke: [{joke}]")
 	print(f"{REDDIT_PREFIX}{comment.permalink}")
+	
+	# Handle a possibly duplicate joke.
+	lowered_joke = joke.lower()
+	if lowered_joke in existing_data:
+		print("Duplicate joke. Ignoring.\n")
+		return False
+	existing_data.add(lowered_joke)
+	
+	filename = os.path.join(data_path, f"{filenum}.txt")
+	print(f"Writing to {filename}.\n")
+	
+	# Write to training data.
+	with open(filename, encoding="utf-8", mode="w") as text_file:
+		print(joke, file=text_file)
+	return True
