@@ -4,6 +4,10 @@ import sys
 import reddit_collect as rc
 
 def sort_directory(directory):
+	if not os.path.isdir(directory):
+		print(f"Directory {directory} does not exist.")
+		return
+	
 	print(f"Processing {directory}.")
 	# Get a sorted list of the directory's files based on their number.
 	files = os.listdir(directory)
@@ -22,6 +26,7 @@ def sort_directory(directory):
 			# If the filenames differ, it is because the actual number is ahead of expected.
 			# The rename cannot clash with an existing file inductively.
 			os.rename(full_src, full_dst)
-			
+	print()
+	
 sort_directory(rc.TRAINING_DATA_POS_PATH)
 sort_directory(rc.TRAINING_DATA_NEG_PATH)

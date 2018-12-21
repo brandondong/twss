@@ -52,11 +52,7 @@ def run_script(collect_pos, examples_limit=None):
 	print(f"Number of existing training examples: {len(existing_data)}.\n")
 
 	reddit = praw.Reddit(BOT_ID, user_agent=BOT_USER_AGENT)
-	
-	# TODO remove this.
-	submission = reddit.submission("9sc0qj")
-	starting_filenum = _walk_comment_forest(submission.comments, None, submission, starting_filenum, data_path, existing_data)
-	
+		
 	for submission in reddit.subreddit(TRAINING_SUBREDDIT).hot(limit=None):
 		if should_quit:
 			break
